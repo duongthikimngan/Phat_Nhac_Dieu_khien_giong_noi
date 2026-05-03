@@ -542,8 +542,62 @@
         box-shadow: var(--sh-md);
       }
 
-      .artwork-placeholder svg { opacity: 0.25; color: var(--purple-l); }
-      .artwork-placeholder-text { font-size: 11px; color: var(--t3); font-weight: 500; letter-spacing: 0.06em; }
+      .artwork-placeholder-text { font-size: 11px; color: var(--t3); font-weight: 500; letter-spacing: 0.06em; margin-top: 4px; }
+
+      /* ── PLACEHOLDER VINYL DISC ── */
+      .ph-vinyl {
+        width: 76%; aspect-ratio: 1; border-radius: 50%;
+        position: relative; display: flex; align-items: center; justify-content: center;
+        animation: ph-spin 14s linear infinite;
+        filter: drop-shadow(0 0 20px rgba(139,92,246,0.50))
+                drop-shadow(0 0 42px rgba(6,182,212,0.22));
+      }
+
+      .ph-vinyl::before {
+        content: ''; position: absolute; inset: 0; border-radius: 50%;
+        background: conic-gradient(
+          from 0deg,
+          #7c3aed, #3b82f6, #06b6d4, #10b981,
+          #fbbf24, #ec4899, #a78bfa, #7c3aed
+        );
+      }
+
+      .ph-vinyl-body {
+        position: relative; z-index: 1;
+        width: 84%; height: 84%; border-radius: 50%;
+        background: radial-gradient(circle at 42% 38%, #1c2448 0%, #0f1428 58%, #080e1c 100%);
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+        box-shadow: inset 0 0 40px rgba(0,0,0,0.70);
+      }
+
+      .ph-vinyl-grooves {
+        position: absolute; inset: 0; border-radius: 50%;
+        background: repeating-radial-gradient(
+          circle at center,
+          transparent 0px, transparent 8px,
+          rgba(255,255,255,0.025) 8px, rgba(255,255,255,0.025) 9.5px
+        );
+      }
+
+      .ph-vinyl-label {
+        position: relative; z-index: 1;
+        width: 36%; height: 36%; border-radius: 50%;
+        background: linear-gradient(135deg,
+          rgba(124,58,237,0.65) 0%, rgba(59,130,246,0.50) 45%, rgba(6,182,212,0.45) 100%);
+        border: 1.5px solid rgba(139,92,246,0.60);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 0 18px rgba(139,92,246,0.55), inset 0 0 10px rgba(124,58,237,0.25);
+      }
+
+      .ph-vinyl-center {
+        width: 26%; height: 26%; border-radius: 50%;
+        background: #0b0e1a;
+        border: 1.5px solid rgba(139,92,246,0.85);
+        box-shadow: 0 0 10px rgba(139,92,246,0.60);
+      }
+
+      @keyframes ph-spin { to { transform: rotate(360deg); } }
 
       .vinyl-center {
         position: absolute; z-index: 3;
@@ -1217,13 +1271,16 @@
             <div class="artwork-ring" id="artwork-ring" aria-hidden="true"></div>
             <div class="artwork-ring-mask" aria-hidden="true"></div>
             <div class="artwork-glow" aria-hidden="true"></div>
-            <img id="now-artwork" alt="Bìa bài hát đang phát" src="">
+            <img id="now-artwork" alt="Bìa bài hát đang phát">
             <div class="artwork-placeholder" id="artwork-placeholder" aria-hidden="true">
-              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8">
-                <path d="M9 18V5l12-2v13"></path>
-                <circle cx="6" cy="18" r="3"></circle>
-                <circle cx="18" cy="16" r="3"></circle>
-              </svg>
+              <div class="ph-vinyl">
+                <div class="ph-vinyl-body">
+                  <div class="ph-vinyl-grooves"></div>
+                  <div class="ph-vinyl-label">
+                    <div class="ph-vinyl-center"></div>
+                  </div>
+                </div>
+              </div>
               <span class="artwork-placeholder-text">Chưa có bài hát</span>
             </div>
             <div class="vinyl-center" id="vinyl-center" aria-hidden="true">
@@ -1341,7 +1398,7 @@
       <footer class="bottom-bar" role="region" aria-label="Trình phát nhạc">
         <div class="bar-track-info">
           <div class="bar-thumb-wrap">
-            <img class="bar-thumb" id="bar-thumb" src="" alt="">
+            <img class="bar-thumb" id="bar-thumb" alt="">
             <div class="bar-thumb-placeholder" id="bar-thumb-placeholder" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.35;color:var(--purple-l);">
                 <path d="M9 18V5l12-2v13"></path>
@@ -1362,7 +1419,7 @@
               <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"></path>
             </svg>
           </button>
-          <button id="play-toggle-button" type="button" class="ctrl-btn primary" aria-label="Phát / Tạm dừng" title="Phát / Tạm dừng">
+          <button id="play-toggle-button" type="button" class="ctrl-btn primary" aria-label="Phát" title="Phát">
             <svg id="play-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M8 5v14l11-7z"></path>
             </svg>
@@ -1370,6 +1427,11 @@
           <button id="next-button" type="button" class="ctrl-btn" aria-label="Bài sau" title="Bài sau">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"></path>
+            </svg>
+          </button>
+          <button id="replay-button" type="button" class="ctrl-btn" aria-label="Phát lại từ đầu" title="Phát lại">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"></path>
             </svg>
           </button>
         </div>
@@ -1388,7 +1450,6 @@
       <div class="hidden-controls" aria-hidden="true">
         <button id="play-button" type="button">Phát nhạc</button>
         <button id="stop-button" type="button">Dừng</button>
-        <button id="replay-button" type="button">Phát lại</button>
       </div>
     </div>
 

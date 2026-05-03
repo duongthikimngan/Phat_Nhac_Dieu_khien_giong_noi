@@ -25,6 +25,7 @@ const state = {
   hasMicAccess: false,
   permissionStatus: null,
   commandCount: 0,
+  micMutedAudio: false,
   backendMicMuted: null,
   micPollTimer: null,
   rearming: false,
@@ -91,7 +92,7 @@ function updateNowPlaying() {
     elements.trackTitle.textContent = "Chưa có bài hát";
     elements.trackMeta.textContent = "Tải nhạc từ máy để bắt đầu phát";
     if (elements.nowArtwork) {
-      elements.nowArtwork.src = "";
+      elements.nowArtwork.removeAttribute("src");
       elements.nowArtwork.alt = "Không có bìa";
     }
     return;
@@ -102,7 +103,11 @@ function updateNowPlaying() {
     track.artist || "Danh sách phát cá nhân"
   }`;
   if (elements.nowArtwork) {
-    elements.nowArtwork.src = track.artwork || "";
+    if (track.artwork) {
+      elements.nowArtwork.src = track.artwork;
+    } else {
+      elements.nowArtwork.removeAttribute("src");
+    }
     elements.nowArtwork.alt = `${track.title} — ${track.artist || "Nhạc tải lên"}`;
   }
 }
@@ -121,31 +126,61 @@ function renderPlaylist() {
 
   state.tracks.forEach((track, index) => {
     const item = document.createElement("li");
+    item.className = "track-item";
+    if (index === state.currentIndex) item.classList.add("active");
+    item.addEventListener("click", () => selectTrack(index, true));
+
+    // Track number / playing indicator
+    const numCell = document.createElement("span");
+    numCell.className = "track-num";
     if (index === state.currentIndex) {
-      item.classList.add("active");
+      numCell.innerHTML = '<div class="playing-bars"><span></span><span></span><span></span></div>';
+    } else {
+      numCell.textContent = String(index + 1);
     }
 
-    const copy = document.createElement("div");
-    copy.className = "track-copy";
-    copy.innerHTML = `
-      <p class="track-title">${track.title}</p>
-      <p class="track-sub">${track.artist || "Danh sách phát cá nhân"}</p>
-    `;
+    // Thumbnail placeholder
+    const thumb = document.createElement("div");
+    thumb.style.cssText = "width:40px;height:40px;border-radius:6px;background:var(--bg-4);border:1px solid var(--glass-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;";
+    thumb.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.30;color:var(--purple-l)" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
 
-    const action = document.createElement("button");
-    action.type = "button";
-    action.className = "track-action";
-    action.textContent = index === state.currentIndex ? "Đang phát" : "Phát";
-    action.addEventListener("click", () => selectTrack(index, true));
+    // Track info
+    const info = document.createElement("div");
+    info.className = "track-info";
+    const nameEl = document.createElement("p");
+    nameEl.className = "track-name";
+    nameEl.textContent = track.title;
+    const artistEl = document.createElement("p");
+    artistEl.className = "track-artist";
+    artistEl.textContent = track.artist || "Danh sách phát cá nhân";
+    info.append(nameEl, artistEl);
 
-    item.append(copy, action);
+    // Action button
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ctrl-btn";
+    btn.style.cssText = "width:30px;height:30px;";
+    btn.setAttribute("aria-label", index === state.currentIndex ? "Đang phát" : "Phát bài này");
+    btn.innerHTML = index === state.currentIndex
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+    btn.addEventListener("click", (e) => { e.stopPropagation(); selectTrack(index, true); });
+
+    item.append(numCell, thumb, info, btn);
     elements.playlist.appendChild(item);
   });
 }
 
 function syncPlayButton() {
   const isPlaying = !elements.audio.paused && !elements.audio.ended;
-  elements.playToggleButton.textContent = isPlaying ? "Tạm dừng" : "Phát / Tạm dừng";
+  const icon = document.getElementById("play-icon");
+  if (icon) {
+    icon.innerHTML = isPlaying
+      ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
+      : '<path d="M8 5v14l11-7z"/>';
+  }
+  elements.playToggleButton.setAttribute("aria-label", isPlaying ? "Tạm dừng" : "Phát");
+  elements.playToggleButton.title = isPlaying ? "Tạm dừng" : "Phát";
 }
 
 function selectTrack(index, autoplay = false) {
@@ -237,52 +272,71 @@ function normalizeCommand(command) {
   return normalized;
 }
 
+function showToast(message, duration = 2500) {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add("fade-out");
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
 function handleCommand(command, confidence = null) {
   const normalized = normalizeCommand(command);
   elements.lastCommand.textContent = normalized || "Không rõ";
   state.commandCount += 1;
   updateCommandCount();
 
-  const confidenceText =
-    typeof confidence === "number" ? ` (độ tin cậy ${(confidence * 100).toFixed(1)}%)` : "";
-
-  if (normalized === "go") {
-    setActivationState(true);
-    setFeedback(`Hệ thống đã được kích hoạt${confidenceText}.`);
-    return;
+  // Flash the last-command status card
+  const lastCard = elements.lastCommand.closest(".status-card");
+  if (lastCard) {
+    lastCard.style.borderColor = "rgba(6,182,212,0.70)";
+    lastCard.style.boxShadow = "0 0 18px rgba(6,182,212,0.30)";
+    setTimeout(() => { lastCard.style.borderColor = ""; lastCard.style.boxShadow = ""; }, 800);
   }
 
-  if (!state.active) {
-    setFeedback(
-      `Đã nhận "${normalized}"${confidenceText}, nhưng hệ thống chưa kích hoạt. Hãy nói "go" trước.`
-    );
-    return;
-  }
+  const pct = typeof confidence === "number" ? ` (${(confidence * 100).toFixed(0)}%)` : "";
 
   switch (normalized) {
+    case "go":
+      setActivationState(true);
+      setFeedback(`✅ Hệ thống đã kích hoạt${pct}.`);
+      showToast(`🟢 Kích hoạt${pct}`);
+      break;
     case "play":
       playTrack();
-      setFeedback(`Đã thực thi lệnh phát${confidenceText}.`);
+      setFeedback(`▶ Đang phát nhạc${pct}.`);
+      showToast(`▶ Phát nhạc${pct}`);
       break;
     case "stop":
       stopTrack();
-      setFeedback(`Đã thực thi lệnh dừng${confidenceText}.`);
+      setFeedback(`⏹ Đã tạm dừng${pct}.`);
+      showToast(`⏹ Tạm dừng${pct}`);
       break;
     case "next":
       nextTrack();
-      setFeedback(`Đã chuyển sang bài tiếp theo${confidenceText}.`);
+      setFeedback(`⏭ Bài tiếp theo${pct}.`);
+      showToast(`⏭ Bài tiếp theo${pct}`);
       break;
     case "back":
       backTrack();
-      setFeedback(`Đã quay lại bài trước${confidenceText}.`);
+      setFeedback(`⏮ Bài trước${pct}.`);
+      showToast(`⏮ Bài trước${pct}`);
       break;
     case "replay":
       replayTrack();
-      setFeedback(`Đã phát lại bài hiện tại${confidenceText}.`);
+      setFeedback(`🔁 Phát lại${pct}.`);
+      showToast(`🔁 Phát lại${pct}`);
       break;
-    default:
-      setFeedback(`Lệnh "${normalized}" hiện chưa được hỗ trợ.`);
+    default: {
+      const safe = normalized.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      setFeedback(`Lệnh "<strong>${safe}</strong>" chưa được hỗ trợ.`);
       break;
+    }
   }
 }
 
@@ -583,11 +637,13 @@ function finishListeningCycle(message, externalMuted = false) {
 
 async function shutdownMicrophoneSession(message) {
   await releaseStreamCompletely();
+  unmuteAudioAfterRecording();
   finishListeningCycle(message, true);
 }
 
 async function suspendListeningSession(message) {
   await releaseStreamCompletely();
+  unmuteAudioAfterRecording();
   state.processingCommand = false;
   state.recorder = null;
   resetListeningState();
@@ -657,6 +713,13 @@ function startMonitoring() {
   };
 
   state.monitoringFrame = requestAnimationFrame(loop);
+}
+
+function unmuteAudioAfterRecording() {
+  if (state.micMutedAudio) {
+    elements.audio.muted = false;
+    state.micMutedAudio = false;
+  }
 }
 
 function stopCurrentSegment(message = "") {
@@ -775,6 +838,11 @@ async function startOneShotListening() {
     await processRecordedAudio(chunks);
   });
 
+  // Mute music playback to prevent audio bleed into the microphone recording
+  if (!elements.audio.paused) {
+    elements.audio.muted = true;
+    state.micMutedAudio = true;
+  }
   state.recorder.start();
   setMicState("Đang chờ giọng nói", "active");
   setMicVisualState("armed");
