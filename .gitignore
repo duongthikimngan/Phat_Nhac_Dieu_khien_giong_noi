@@ -26,6 +26,11 @@ ENV/
 env/
 .venv
 
+# Models (large files)
+models-20260427T084020Z-3-001/
+*.pkl
+models/
+
 # IDE
 .vscode/
 .idea/
