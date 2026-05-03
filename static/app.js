@@ -53,6 +53,7 @@ const elements = {
   replayButton: document.getElementById("replay-button"),
   micIndicator: document.getElementById("mic-indicator"),
   commandCount: document.getElementById("command-count"),
+  artworkPlaceholderText: document.getElementById("artwork-placeholder-text"),
 };
 
 function setActivationState(active) {
@@ -95,6 +96,10 @@ function updateNowPlaying() {
       elements.nowArtwork.removeAttribute("src");
       elements.nowArtwork.alt = "Không có bìa";
     }
+    if (elements.artworkPlaceholderText) {
+      elements.artworkPlaceholderText.style.display = "";
+      elements.artworkPlaceholderText.textContent = "Chưa có bài hát";
+    }
     return;
   }
 
@@ -109,6 +114,9 @@ function updateNowPlaying() {
       elements.nowArtwork.removeAttribute("src");
     }
     elements.nowArtwork.alt = `${track.title} — ${track.artist || "Nhạc tải lên"}`;
+  }
+  if (elements.artworkPlaceholderText) {
+    elements.artworkPlaceholderText.style.display = "none";
   }
 }
 

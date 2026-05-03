@@ -1281,7 +1281,7 @@
                   </div>
                 </div>
               </div>
-              <span class="artwork-placeholder-text">Chưa có bài hát</span>
+              <span class="artwork-placeholder-text" id="artwork-placeholder-text">Chưa có bài hát</span>
             </div>
             <div class="vinyl-center" id="vinyl-center" aria-hidden="true">
               <div class="vinyl-dot"></div>
@@ -1684,7 +1684,7 @@
         artworkRing?.classList.add("playing");
         artworkWrapper?.classList.add("playing");
         nowPlayingContent?.classList.add("is-playing");
-        if (vinylCenter) vinylCenter.style.display = "flex";
+        if (vinylCenter) vinylCenter.style.display = nowArtwork.style.display !== "none" ? "flex" : "none";
         visualizerEl?.classList.add("active");
       });
 
