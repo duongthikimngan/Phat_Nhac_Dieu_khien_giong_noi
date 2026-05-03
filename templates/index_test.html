@@ -1,0 +1,1231 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bảng Điều Khiển Phát Nhạc Bằng Giọng Nói</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg-base: #0d0d12;
+        --bg-surface: #141419;
+        --bg-raised: #1c1c24;
+        --bg-hover: #22222e;
+        --bg-active: #28283a;
+        --accent: #a78bfa;
+        --accent-bright: #c4b5fd;
+        --accent-dim: #7c3aed44;
+        --accent-glow: #7c3aed66;
+        --text-primary: #f0eeff;
+        --text-secondary: #9b96b8;
+        --text-muted: #5c5875;
+        --border: #1e1e2a;
+        --border-light: #282838;
+        --danger: #f87171;
+        --success: #4ade80;
+        --gold: #fbbf24;
+        --sidebar-w: 340px;
+        --player-h: 90px;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --radius-lg: 20px;
+        font-family: "Sora", sans-serif;
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg-base);
+        color: var(--text-primary);
+      }
+
+      /* ── APP SHELL ── */
+      .app-shell {
+        display: grid;
+        grid-template-rows: 1fr var(--player-h);
+        grid-template-columns: var(--sidebar-w) 1fr;
+        height: 100vh;
+        width: 100vw;
+      }
+
+      /* ── SIDEBAR: PLAYLIST ── */
+      .sidebar {
+        grid-row: 1 / 2;
+        grid-column: 1 / 2;
+        background: var(--bg-surface);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .sidebar-header {
+        padding: 24px 20px 16px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+
+      .sidebar-eyebrow {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 6px;
+      }
+
+      .sidebar-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 14px;
+      }
+
+      .upload-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--accent-dim);
+        border: 1px solid var(--accent);
+        color: var(--accent-bright);
+        border-radius: var(--radius-sm);
+        padding: 9px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.2s;
+        width: 100%;
+        justify-content: center;
+        letter-spacing: 0.02em;
+      }
+      .upload-button:hover {
+        background: var(--accent-glow);
+        transform: translateY(-1px);
+      }
+      .upload-button svg {
+        flex-shrink: 0;
+      }
+      #track-input {
+        display: none;
+      }
+
+      .playlist-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 0;
+      }
+      .playlist-scroll::-webkit-scrollbar {
+        width: 4px;
+      }
+      .playlist-scroll::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .playlist-scroll::-webkit-scrollbar-thumb {
+        background: var(--border-light);
+        border-radius: 2px;
+      }
+
+      #playlist {
+        list-style: none;
+        padding: 0 8px;
+      }
+
+      #playlist li {
+        display: grid;
+        grid-template-columns: 28px 40px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background 0.15s;
+        position: relative;
+      }
+      #playlist li:hover {
+        background: var(--bg-hover);
+      }
+      #playlist li.active {
+        background: var(--bg-active);
+      }
+
+      .track-num {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 500;
+        text-align: center;
+        font-family: "DM Sans", sans-serif;
+      }
+      #playlist li.active .track-num {
+        color: var(--accent);
+      }
+
+      .track-thumb {
+        width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        background: var(--bg-raised);
+        object-fit: cover;
+        flex-shrink: 0;
+      }
+
+      .track-info {
+        min-width: 0;
+      }
+      .track-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+      }
+      #playlist li.active .track-name {
+        color: var(--accent-bright);
+      }
+      .track-artist {
+        font-size: 11px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+        font-family: "DM Sans", sans-serif;
+      }
+
+      .track-dur {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-family: "DM Sans", sans-serif;
+        white-space: nowrap;
+      }
+
+      .playlist-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 48px 20px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+      .playlist-empty svg {
+        opacity: 0.3;
+      }
+      .playlist-empty p {
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      /* ── MAIN AREA: NOW PLAYING ── */
+      .main-area {
+        grid-row: 1 / 2;
+        grid-column: 2 / 3;
+        display: flex;
+        align-items: stretch;
+        overflow: hidden;
+        background: var(--bg-base);
+        position: relative;
+      }
+
+      /* Ambient background glow from artwork */
+      .ambient-bg {
+        position: absolute;
+        inset: 0;
+        opacity: 0.15;
+        background: radial-gradient(
+          ellipse 80% 80% at 60% 30%,
+          var(--accent),
+          transparent
+        );
+        pointer-events: none;
+        transition: all 1s ease;
+        z-index: 0;
+      }
+
+      .now-playing-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 40px;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Artwork */
+      .artwork-wrapper {
+        position: relative;
+        width: min(320px, 42vw);
+        aspect-ratio: 1;
+        margin-bottom: 28px;
+        flex-shrink: 0;
+      }
+
+      .artwork-shadow {
+        position: absolute;
+        inset: 16px;
+        border-radius: var(--radius-lg);
+        background: var(--accent);
+        opacity: 0.25;
+        filter: blur(32px);
+        z-index: 0;
+        transition: opacity 0.5s;
+      }
+      .artwork-wrapper:hover .artwork-shadow {
+        opacity: 0.4;
+      }
+
+      #now-artwork {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: var(--radius-lg);
+        display: block;
+        background: var(--bg-raised);
+        transition: transform 0.3s ease;
+      }
+      #now-artwork:hover {
+        transform: scale(1.01);
+      }
+
+      .artwork-placeholder {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        border-radius: var(--radius-lg);
+        background: var(--bg-raised);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .artwork-placeholder svg {
+        opacity: 0.2;
+        width: 80px;
+        height: 80px;
+      }
+
+      /* Track info */
+      .track-display {
+        text-align: center;
+        width: 100%;
+        max-width: 420px;
+        margin-bottom: 28px;
+      }
+      #track-title {
+        font-size: clamp(18px, 2.5vw, 26px);
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1.2;
+        margin-bottom: 6px;
+        letter-spacing: -0.02em;
+      }
+      #track-meta {
+        font-size: 14px;
+        color: var(--text-secondary);
+        font-family: "DM Sans", sans-serif;
+        font-weight: 400;
+      }
+
+      /* Progress bar */
+      .progress-area {
+        width: 100%;
+        max-width: 420px;
+        margin-bottom: 24px;
+      }
+      .progress-track {
+        height: 4px;
+        background: var(--border-light);
+        border-radius: 2px;
+        overflow: hidden;
+        cursor: pointer;
+        position: relative;
+      }
+      .progress-fill {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 2px;
+        width: 0%;
+        transition: width 0.5s linear;
+      }
+      .progress-times {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 6px;
+        font-size: 11px;
+        color: var(--text-muted);
+        font-family: "DM Sans", sans-serif;
+      }
+
+      /* Voice Controls Panel */
+      .voice-panel {
+        width: 300px;
+        border-left: 1px solid var(--border);
+        background: var(--bg-surface);
+        display: flex;
+        flex-direction: column;
+        padding: 24px 20px;
+        gap: 18px;
+        overflow-y: auto;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1;
+      }
+      .voice-panel::-webkit-scrollbar {
+        width: 0;
+      }
+
+      .voice-section-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 2px;
+      }
+
+      /* Mic indicator */
+      .mic-center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 20px 0 10px;
+      }
+
+      #mic-indicator {
+        position: relative;
+        width: 64px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .mic-core {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--bg-raised);
+        border: 2px solid var(--border-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 2;
+        transition: all 0.3s;
+        font-size: 20px;
+      }
+      .mic-ring {
+        position: absolute;
+        border-radius: 50%;
+        border: 1.5px solid var(--accent);
+        opacity: 0;
+        animation: none;
+      }
+      .ring-one {
+        width: 56px;
+        height: 56px;
+      }
+      .ring-two {
+        width: 68px;
+        height: 68px;
+      }
+      .ring-three {
+        width: 80px;
+        height: 80px;
+      }
+
+      #mic-indicator[data-state="listening"] .mic-core {
+        border-color: var(--accent);
+        background: var(--accent-dim);
+      }
+      #mic-indicator[data-state="listening"] .ring-one {
+        animation: ripple 1.5s ease-out infinite;
+      }
+      #mic-indicator[data-state="listening"] .ring-two {
+        animation: ripple 1.5s ease-out 0.3s infinite;
+      }
+      #mic-indicator[data-state="listening"] .ring-three {
+        animation: ripple 1.5s ease-out 0.6s infinite;
+      }
+      #mic-indicator[data-state="active"] .mic-core {
+        border-color: var(--success);
+        background: #4ade8022;
+      }
+
+      @keyframes ripple {
+        0% {
+          opacity: 0.7;
+          transform: scale(0.85);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(1.2);
+        }
+      }
+
+      .mic-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-align: center;
+      }
+
+      /* Status cards */
+      .status-mini-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .status-mini-card {
+        background: var(--bg-raised);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .status-mini-label {
+        font-size: 10px;
+        color: var(--text-muted);
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-family: "DM Sans", sans-serif;
+      }
+      .status-mini-value {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .status-mini-value.idle {
+        color: var(--text-secondary);
+      }
+      .status-mini-value.listening {
+        color: var(--accent-bright);
+      }
+      .status-mini-value.active {
+        color: var(--success);
+      }
+
+      /* Feedback */
+      .feedback-box {
+        background: var(--bg-raised);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 12px;
+        font-size: 12.5px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        font-family: "DM Sans", sans-serif;
+      }
+      .feedback-box strong {
+        color: var(--accent-bright);
+      }
+
+      /* Commands list */
+      .commands-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .cmd-badge {
+        background: var(--accent-dim);
+        border: 1px solid var(--accent);
+        color: var(--accent-bright);
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        font-family: "DM Sans", sans-serif;
+        letter-spacing: 0.03em;
+      }
+
+      .metric-row {
+        background: var(--bg-raised);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .metric-row-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-family: "DM Sans", sans-serif;
+      }
+      #command-count {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--accent-bright);
+      }
+
+      /* Usage steps */
+      .usage-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .usage-step {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .step-num {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--accent-dim);
+        border: 1px solid var(--accent);
+        color: var(--accent-bright);
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .step-text {
+        font-size: 12px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        font-family: "DM Sans", sans-serif;
+      }
+
+      /* ── BOTTOM PLAYER BAR ── */
+      .bottom-bar {
+        grid-row: 2 / 3;
+        grid-column: 1 / 3;
+        background: var(--bg-surface);
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        gap: 24px;
+        z-index: 10;
+      }
+
+      .bar-track-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 200px;
+        flex: 1;
+      }
+      .bar-thumb {
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        background: var(--bg-raised);
+        object-fit: cover;
+        flex-shrink: 0;
+      }
+      .bar-titles {
+        min-width: 0;
+      }
+      .bar-title {
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .bar-artist {
+        font-size: 11px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-family: "DM Sans", sans-serif;
+      }
+
+      .bar-controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex: 1;
+      }
+
+      .ctrl-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+        font-family: inherit;
+      }
+      .ctrl-btn:hover {
+        color: var(--text-primary);
+        background: var(--bg-raised);
+      }
+      .ctrl-btn.primary {
+        width: 44px;
+        height: 44px;
+        background: var(--text-primary);
+        color: var(--bg-base);
+        border-radius: 50%;
+      }
+      .ctrl-btn.primary:hover {
+        background: var(--accent-bright);
+        transform: scale(1.05);
+      }
+
+      .bar-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        justify-content: flex-end;
+      }
+
+      .volume-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .vol-icon {
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
+      input[type="range"].volume-slider {
+        -webkit-appearance: none;
+        width: 90px;
+        height: 3px;
+        background: var(--border-light);
+        border-radius: 2px;
+        outline: none;
+        cursor: pointer;
+      }
+      input[type="range"].volume-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--text-primary);
+        cursor: pointer;
+      }
+
+      /* Hidden audio */
+      #audio-player {
+        display: none;
+      }
+
+      /* Hidden control buttons */
+      .hidden-controls {
+        display: none;
+      }
+
+      /* Divider */
+      .panel-divider {
+        height: 1px;
+        background: var(--border);
+        flex-shrink: 0;
+      }
+
+      /* Now playing spinning disc for active */
+      .disc-spin {
+        animation: spin 8s linear infinite paused;
+      }
+      .disc-spin.playing {
+        animation-play-state: running;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Playing indicator dots in playlist */
+      .playing-bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 14px;
+        width: 14px;
+      }
+      .playing-bars span {
+        display: block;
+        width: 3px;
+        background: var(--accent);
+        border-radius: 1px;
+        animation: bar-bounce 0.8s ease-in-out infinite;
+      }
+      .playing-bars span:nth-child(1) {
+        height: 6px;
+        animation-delay: 0s;
+      }
+      .playing-bars span:nth-child(2) {
+        height: 10px;
+        animation-delay: 0.15s;
+      }
+      .playing-bars span:nth-child(3) {
+        height: 7px;
+        animation-delay: 0.3s;
+      }
+      @keyframes bar-bounce {
+        0%,
+        100% {
+          transform: scaleY(0.5);
+        }
+        50% {
+          transform: scaleY(1.2);
+        }
+      }
+
+      /* Responsive */
+      @media (max-width: 900px) {
+        :root {
+          --sidebar-w: 260px;
+        }
+        .voice-panel {
+          width: 240px;
+        }
+      }
+      @media (max-width: 700px) {
+        .app-shell {
+          grid-template-columns: 1fr;
+          grid-template-rows: 1fr auto var(--player-h);
+        }
+        .sidebar {
+          display: none;
+        }
+        .voice-panel {
+          display: none;
+        }
+        .main-area {
+          grid-column: 1;
+        }
+        .bottom-bar {
+          grid-column: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- ── SIDEBAR: PLAYLIST ── -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <p class="sidebar-eyebrow">Thư viện</p>
+          <h2 class="sidebar-title">Danh sách phát</h2>
+          <label class="upload-button">
+            <input id="track-input" type="file" accept="audio/*" multiple />
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Nạp nhạc từ máy
+          </label>
+        </div>
+        <div class="playlist-scroll">
+          <ol id="playlist" aria-label="Danh sách phát">
+            <li class="playlist-empty" style="list-style: none">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                width="48"
+                height="48"
+              >
+                <path d="M9 18V5l12-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="16" r="3" />
+              </svg>
+              <p>Chưa có bài nào.<br />Nhấn "Nạp nhạc từ máy" để bắt đầu.</p>
+            </li>
+          </ol>
+        </div>
+      </aside>
+
+      <!-- ── MAIN: NOW PLAYING + VOICE ── -->
+      <main class="main-area">
+        <div class="ambient-bg"></div>
+
+        <!-- Now Playing Center -->
+        <div class="now-playing-area">
+          <!-- Artwork -->
+          <div class="artwork-wrapper">
+            <div class="artwork-shadow"></div>
+            <img
+              id="now-artwork"
+              alt="Bìa bài hát đang phát"
+              src=""
+              style="display: none"
+            />
+            <div class="artwork-placeholder" id="artwork-placeholder">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1"
+              >
+                <path d="M9 18V5l12-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="16" r="3" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Track info -->
+          <div class="track-display">
+            <h2 id="track-title">Chưa có bài hát</h2>
+            <p id="track-meta">Tải nhạc từ máy để bắt đầu phát</p>
+          </div>
+
+          <!-- Progress -->
+          <div class="progress-area">
+            <div class="progress-track" id="progress-track">
+              <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-times">
+              <span id="time-current">0:00</span>
+              <span id="time-total">0:00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Voice Control Panel -->
+        <aside class="voice-panel">
+          <div>
+            <p class="voice-section-label">Giọng nói</p>
+          </div>
+
+          <!-- Mic center -->
+          <div class="mic-center">
+            <div id="mic-indicator" data-state="idle" aria-hidden="true">
+              <div class="mic-core">🎙️</div>
+              <span class="mic-ring ring-one"></span>
+              <span class="mic-ring ring-two"></span>
+              <span class="mic-ring ring-three"></span>
+            </div>
+            <p class="mic-label" id="mic-state-label">Đang chờ micro</p>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <!-- Status cards -->
+          <div class="status-mini-grid">
+            <div class="status-mini-card">
+              <span class="status-mini-label">Micro</span>
+              <strong id="mic-state" class="status-mini-value idle"
+                >Đang chờ micro</strong
+              >
+            </div>
+            <div class="status-mini-card">
+              <span class="status-mini-label">Hệ thống</span>
+              <strong id="activation-state" class="status-mini-value idle"
+                >Chờ kích hoạt</strong
+              >
+            </div>
+            <div class="status-mini-card">
+              <span class="status-mini-label">Lệnh gần nhất</span>
+              <strong id="last-command" class="status-mini-value"
+                >Chưa có</strong
+              >
+            </div>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <!-- Feedback -->
+          <div>
+            <p class="voice-section-label" style="margin-bottom: 8px">
+              Phản hồi hệ thống
+            </p>
+            <div class="feedback-box">
+              <p id="command-feedback">
+                Bật micro từ trình duyệt, nói <strong>go</strong> để kích hoạt.
+                Sau mỗi lệnh, tắt rồi bật lại micro.
+              </p>
+            </div>
+          </div>
+
+          <!-- Commands -->
+          <div>
+            <p class="voice-section-label" style="margin-bottom: 8px">
+              Lệnh hỗ trợ
+            </p>
+            <div class="commands-list">
+              <span class="cmd-badge">go</span>
+              <span class="cmd-badge">play</span>
+              <span class="cmd-badge">stop</span>
+              <span class="cmd-badge">next</span>
+              <span class="cmd-badge">back</span>
+              <span class="cmd-badge">replay</span>
+            </div>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <!-- Usage -->
+          <div>
+            <p class="voice-section-label" style="margin-bottom: 8px">
+              Cách dùng
+            </p>
+            <div class="usage-steps">
+              <div class="usage-step">
+                <span class="step-num">1</span
+                ><span class="step-text"
+                  >Bật micro từ biểu tượng trình duyệt.</span
+                >
+              </div>
+              <div class="usage-step">
+                <span class="step-num">2</span
+                ><span class="step-text">Nói một lệnh duy nhất.</span>
+              </div>
+              <div class="usage-step">
+                <span class="step-num">3</span
+                ><span class="step-text"
+                  >Tắt rồi bật lại micro để ghi lệnh tiếp.</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- Metric -->
+          <div class="metric-row">
+            <span class="metric-row-label">Lệnh đã xử lý</span>
+            <strong id="command-count" class="status-mini-value">0</strong>
+          </div>
+        </aside>
+      </main>
+
+      <!-- ── BOTTOM BAR ── -->
+      <footer class="bottom-bar">
+        <!-- Track mini info -->
+        <div class="bar-track-info">
+          <img class="bar-thumb" id="bar-thumb" src="" alt="" />
+          <div class="bar-titles">
+            <div class="bar-title" id="bar-title">Chưa có bài hát</div>
+            <div class="bar-artist" id="bar-artist">—</div>
+          </div>
+        </div>
+
+        <!-- Main controls -->
+        <div class="bar-controls">
+          <button
+            id="back-button"
+            type="button"
+            class="ctrl-btn"
+            title="Bài trước"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+            </svg>
+          </button>
+          <button
+            id="play-toggle-button"
+            type="button"
+            class="ctrl-btn primary"
+            title="Phát / Tạm dừng"
+          >
+            <svg
+              id="play-icon"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </button>
+          <button
+            id="next-button"
+            type="button"
+            class="ctrl-btn"
+            title="Bài sau"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Right: volume -->
+        <div class="bar-right">
+          <div class="volume-wrap">
+            <svg
+              class="vol-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path
+                d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"
+              />
+            </svg>
+            <input
+              type="range"
+              class="volume-slider"
+              id="volume-slider"
+              min="0"
+              max="1"
+              step="0.01"
+              value="1"
+            />
+          </div>
+        </div>
+      </footer>
+
+      <!-- Hidden audio player -->
+      <audio id="audio-player" preload="metadata"></audio>
+
+      <!-- Hidden control buttons (for voice command compatibility) -->
+      <div class="hidden-controls">
+        <button id="play-button" type="button">Phát nhạc</button>
+        <button id="stop-button" type="button">Dừng</button>
+        <button id="replay-button" type="button">Phát lại</button>
+      </div>
+    </div>
+
+    <script>
+      window.APP_CONFIG = {
+        playlistEndpoint: "{{ url_for('playlist') }}",
+        predictEndpoint: "{{ url_for('predict') }}",
+        microphoneStateEndpoint: "{{ url_for('microphone_state') }}",
+        microphoneMuteEndpoint: "{{ url_for('microphone_mute') }}",
+      };
+
+      // ── UI SYNC HELPERS ──
+      // Keep bottom bar and main display in sync
+      const audioEl = document.getElementById("audio-player");
+      const progressFill = document.getElementById("progress-fill");
+      const timeCurrent = document.getElementById("time-current");
+      const timeTotal = document.getElementById("time-total");
+      const playIcon = document.getElementById("play-icon");
+      const volumeSlider = document.getElementById("volume-slider");
+
+      function formatTime(s) {
+        if (!isFinite(s)) return "0:00";
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60)
+          .toString()
+          .padStart(2, "0");
+        return `${m}:${sec}`;
+      }
+
+      audioEl.addEventListener("timeupdate", () => {
+        const pct = audioEl.duration
+          ? (audioEl.currentTime / audioEl.duration) * 100
+          : 0;
+        progressFill.style.width = pct + "%";
+        timeCurrent.textContent = formatTime(audioEl.currentTime);
+      });
+
+      audioEl.addEventListener("loadedmetadata", () => {
+        timeTotal.textContent = formatTime(audioEl.duration);
+      });
+
+      audioEl.addEventListener("play", () => {
+        playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+      });
+      audioEl.addEventListener("pause", () => {
+        playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      });
+
+      document
+        .getElementById("progress-track")
+        .addEventListener("click", (e) => {
+          if (!audioEl.duration) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          const pct = (e.clientX - rect.left) / rect.width;
+          audioEl.currentTime = pct * audioEl.duration;
+        });
+
+      volumeSlider.addEventListener("input", (e) => {
+        audioEl.volume = e.target.value;
+      });
+
+      // Observe track title / meta changes to sync bottom bar
+      const titleObs = new MutationObserver(() => {
+        document.getElementById("bar-title").textContent =
+          document.getElementById("track-title").textContent;
+        document.getElementById("bar-artist").textContent =
+          document.getElementById("track-meta").textContent;
+      });
+      titleObs.observe(document.getElementById("track-title"), {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+      titleObs.observe(document.getElementById("track-meta"), {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+
+      // Artwork sync
+      const artworkObs = new MutationObserver(() => {
+        const src = document.getElementById("now-artwork").src;
+        document.getElementById("bar-thumb").src = src;
+        const placeholder = document.getElementById("artwork-placeholder");
+        if (src && src !== window.location.href) {
+          document.getElementById("now-artwork").style.display = "block";
+          placeholder.style.display = "none";
+        }
+      });
+      artworkObs.observe(document.getElementById("now-artwork"), {
+        attributes: true,
+      });
+
+      // Mic state label sync
+      const micState = document.getElementById("mic-state");
+      const micStateLabel = document.getElementById("mic-state-label");
+      const micLabelObs = new MutationObserver(() => {
+        micStateLabel.textContent = micState.textContent;
+      });
+      micLabelObs.observe(micState, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+    </script>
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  </body>
+</html>

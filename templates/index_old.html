@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bảng Điều Khiển Phát Nhạc Bằng Giọng Nói</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+  </head>
+  <body>
+    <div class="background-grid"></div>
+    <div class="background-glow glow-left"></div>
+    <div class="background-glow glow-right"></div>
+
+    <main class="app-shell">
+      <header class="page-header">
+        <div class="title-group">
+          <p class="eyebrow">Trợ lý phát nhạc thông minh</p>
+          <h1 class="page-title">Bảng điều khiển giọng nói</h1>
+          <p class="hero-subtitle">
+            Điều khiển phát nhạc bằng micro của trình duyệt hoặc thiết bị, dùng
+            mô hình {{ model_name }}.
+          </p>
+        </div>
+
+        <label class="upload-button">
+          <input id="track-input" type="file" accept="audio/*" multiple />
+          <span>Nạp nhạc từ máy</span>
+        </label>
+      </header>
+
+      <section class="dashboard-grid">
+        <!-- PLAYER PANEL: Left side with artwork + controls + playlist -->
+        <section class="panel player-panel">
+          <div class="player-layout">
+            <!-- Artwork section -->
+            <div class="artwork-section">
+              <img
+                id="now-artwork"
+                class="artwork"
+                alt="Bìa bài hát đang phát"
+                src=""
+              />
+              <div class="now-playing-info">
+                <h2 id="track-title" class="now-playing-title">
+                  Chưa có bài hát
+                </h2>
+                <p id="track-meta" class="now-playing-artist">
+                  Tải nhạc từ máy để bắt đầu phát
+                </p>
+              </div>
+              <div class="player-mini-controls">
+                <button id="back-button" type="button" class="mini-button">
+                  ◀
+                </button>
+                <button
+                  id="play-toggle-button"
+                  type="button"
+                  class="mini-button play-btn"
+                >
+                  ⏯
+                </button>
+                <button id="next-button" type="button" class="mini-button">
+                  ▶
+                </button>
+              </div>
+            </div>
+
+            <!-- Playlist section -->
+            <div class="playlist-section">
+              <div class="playlist-head">
+                <p class="eyebrow">Danh sách phát</p>
+                <p class="playlist-note">Chọn nhanh bài muốn phát</p>
+              </div>
+              <ol
+                id="playlist"
+                class="playlist"
+                aria-label="Danh sách phát"
+              ></ol>
+            </div>
+          </div>
+
+          <!-- Hidden audio player -->
+          <audio
+            id="audio-player"
+            controls
+            preload="metadata"
+            class="audio-player"
+          ></audio>
+        </section>
+
+        <!-- CONTROL PANEL: Right side with mic status + commands -->
+        <section class="panel control-panel">
+          <div class="panel-topline">
+            <div>
+              <p class="eyebrow">Trạng thái micro</p>
+              <h2 class="panel-title">Theo dõi micro theo thời gian thực</h2>
+            </div>
+            <div
+              id="mic-indicator"
+              class="mic-indicator"
+              data-state="idle"
+              aria-hidden="true"
+            >
+              <span class="mic-core"></span>
+              <span class="mic-ring ring-one"></span>
+              <span class="mic-ring ring-two"></span>
+              <span class="mic-ring ring-three"></span>
+            </div>
+          </div>
+
+          <div class="status-grid">
+            <article class="status-card emphasis">
+              <span class="status-label">Micro</span>
+              <strong id="mic-state" class="status-value idle"
+                >Đang chờ micro</strong
+              >
+            </article>
+            <article class="status-card">
+              <span class="status-label">Hệ thống</span>
+              <strong id="activation-state" class="status-value idle"
+                >Chờ kích hoạt</strong
+              >
+            </article>
+            <article class="status-card">
+              <span class="status-label">Lệnh gần nhất</span>
+              <strong id="last-command" class="status-value">Chưa có</strong>
+            </article>
+          </div>
+
+          <div class="feedback-card">
+            <span class="status-label">Phản hồi hệ thống</span>
+            <p id="command-feedback">
+              Hãy bật micro từ trình duyệt hoặc thiết bị, nói
+              <strong>go</strong> để kích hoạt. Sau mỗi lệnh, tắt rồi bật lại
+              micro để gửi lệnh tiếp theo.
+            </p>
+          </div>
+
+          <div class="info-grid">
+            <article class="info-card">
+              <span class="status-label">Cách dùng</span>
+              <p>
+                1. Bật micro từ biểu tượng micro của trình duyệt hoặc thiết
+                bị.<br />
+                2. Nói một lệnh duy nhất.<br />
+                3. Tắt rồi bật lại micro để ghi lệnh tiếp theo.
+              </p>
+            </article>
+            <article class="info-card">
+              <span class="status-label">Lệnh hỗ trợ</span>
+              <p>
+                <strong>go</strong>, <strong>play</strong>,
+                <strong>stop</strong>, <strong>next</strong>,
+                <strong>back</strong>, <strong>replay</strong>
+              </p>
+            </article>
+          </div>
+
+          <div class="metric-card" style="align-self: flex-start">
+            <span class="status-label">Lệnh đã xử lý</span>
+            <strong id="command-count" class="metric-value">0</strong>
+          </div>
+        </section>
+      </section>
+
+      <!-- Hidden control buttons for voice commands -->
+      <div style="display: none">
+        <button id="play-button" type="button">Phát nhạc</button>
+        <button id="stop-button" type="button">Dừng</button>
+        <button id="replay-button" type="button">Phát lại</button>
+      </div>
+    </main>
+
+    <script>
+      window.APP_CONFIG = {
+        playlistEndpoint: "{{ url_for('playlist') }}",
+        predictEndpoint: "{{ url_for('predict') }}",
+        microphoneStateEndpoint: "{{ url_for('microphone_state') }}",
+        microphoneMuteEndpoint: "{{ url_for('microphone_mute') }}",
+      };
+    </script>
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  </body>
+</html>
